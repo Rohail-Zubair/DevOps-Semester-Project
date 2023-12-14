@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doctors-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: doctors
+  template:
+    metadata:
+      labels:
+        app: doctors
+    spec:
+      containers:
+      - name: doctors
+        image: rohail0463/doctors:latest  
+        env:
+        - name: APPOINTMENTS_API_HOST
+          value: appointments-service  
+        - name: APPOINTMENTS_API_PORT
+          value: "80"
+        - name: DATABASE_HOST
+          value: db-service  
+        - name: DATABASE_PORT
+          value: "3300"  
+  
+---        
+apiVersion: v1
+kind: Service
+metadata:
+  name: doctors-service
+spec:
+  selector:
+    app: doctors
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000  

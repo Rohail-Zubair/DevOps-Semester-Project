@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+       
+      - image: rohail0463/frontend:latest
+       
+      - ports:
+        - containerPort: 3000  
+       
+      - env:
+        - name: DOCTORS_SERVICE_URL
+        - value: "http://doctors-service.default.svc.cluster.local:9092"  
+        - name: APPOINTMENTS_SERVICE_URL
+        - value: "http://appointments-service.default.svc.cluster.local:7072"  
+       
+       	- name: APPOINTMENTS_API_HOST
+          value: appointments-service  
+        - name: APPOINTMENTS_API_PORT
+          value: "80"
+        - name: DOCTORS_API_HOST
+          value: doctors-service 
+        - name: DOCTORS_API_PORT
+          value: "80"
+       
+
+      - resources:
+        - requests:
+          - memory: "256Mi:"
+          - cpu: "100m" 
+        - limits:
+          - memory: "512Mi:"
+          - cpu: "200m"    
+          
+      - readinessProbe:
+        - httpGet:
+          - path: /healthz
+          - port: 3000
+        - initialDelaySeconds: 5
+        - periodSeconds: 10
+        
+      - LivenessProbe:
+        - httpGet:
+          - path: /healthz
+          - port: 3000
+        - initialDelaySeconds: 10
+        - periodSeconds: 20       
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000  
+
