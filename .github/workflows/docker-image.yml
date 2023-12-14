@@ -44,7 +44,9 @@ jobs:
              continue
              ;;
          esac
+         echo "Directory is: $DIRECTORY"
          TAG="${{ steps.set_tag.outputs.tag }}"
+         echo "Directory is: $DIRECTORY"
          DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${DIRECTORY}"
          echo "docker Image is $DOCKER_IMAGE"
          docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
