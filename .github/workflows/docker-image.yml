@@ -45,9 +45,9 @@ jobs:
              ;;
          esac
          TAG="${{ steps.set_tag.outputs.tag }}"
-         DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${DIRECTORY}:${TAG}"
+         DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${DIRECTORY}:${TAG}"
          echo "docker Image is $DOCKER_IMAGE"
-         echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+         echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
          docker build -t $DOCKER_IMAGE $CONTEXT_PATH
          docker push $DOCKER_IMAGE
        done
@@ -88,7 +88,7 @@ jobs:
 
            TAG="${{ steps.set_tag.outputs.tag }}"
            echo "Tag is: $TAG"
-           DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${UPDATED_SERVICE}:${TAG}"
+           DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${UPDATED_SERVICE}:${TAG}"
            echo "Updating Docker Compose for $UPDATED_SERVICE with image $DOCKER_IMAGE"
 
            # Replace the image tag in the Docker Compose file
@@ -98,7 +98,7 @@ jobs:
      - name: Commit and Push Changes
        run: |
          git config --global user.email "rohailzubair263@gmail.com"
-         git config --global user.name "rohail0463"
+         git config --global user.name "Rohail-Zubair"
          git config pull.rebase false
          git add ./docker-compose.yml
          git commit -m "Update Docker Compose file with new appointment image tags"
