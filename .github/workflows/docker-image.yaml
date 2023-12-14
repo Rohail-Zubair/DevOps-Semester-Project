@@ -25,10 +25,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build
-        run: docker build -t username/doctors:${{ github.sha }} ./doctors
+        run: docker build -t rohail0463/doctors:${{ github.sha }} ./doctors
         
       - name: Push
-        run: docker push username/doctors:${{ github.sha }}
+        run: docker push rohail0463/doctors:${{ github.sha }}
 
       - name: Update Image on Docker Compose
         run: |
