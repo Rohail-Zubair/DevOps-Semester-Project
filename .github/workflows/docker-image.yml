@@ -1,66 +1,106 @@
 name: Appointments CI/CD
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'appointments/**'
-  pull_request:
-    branches:
-      - '*'
-    paths:
-      - 'appointments/**'
+ push:
+   branches:
+     - main
+   paths:
+     - 'appointments/**'
+ pull_request:
+   branches:
+     - '*'
+   paths:
+     - 'appointments/**'
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+ build-and-push:
+   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+   steps:
+   - name: Checkout Repository
+     uses: actions/checkout@v2
 
-      - name: Set Tag
-        id: set_tag
-        run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
+   - name: Get Changed Files
+     id: files
+     uses: jitterbit/get-changed-files@v1
 
-      - name: Build and Push Docker image
-        run: |
-          TAG="${{ steps.set_tag.outputs.tag }}"
-          DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/appointments:${TAG}"
-          echo "docker Image is $DOCKER_IMAGE"
-          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          docker build -t $DOCKER_IMAGE ./appointments
-          docker push $DOCKER_IMAGE
+   - name: Set Tag
+     id: set_tag
+     run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
 
-  update-docker-compose:
-    runs-on: ubuntu-latest
-    needs:
-      - build-and-push
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_TOKEN }}
+   - name: Determine Changed Paths
+     run: |
+       CHANGED_PATHS="${{ steps.files.outputs.all }}"
+       for FILE_PATH in $CHANGED_PATHS; do
+         echo "File Path is: $FILE_PATH"
+         DIRECTORY=$(dirname "${FILE_PATH}")
+         echo "Directory is: $DIRECTORY"
 
-      - name: Set Tag
-        id: set_tag
-        run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
+         case "$DIRECTORY" in
+           "appointments")
+             CONTEXT_PATH="./appointments"
+             ;;
+           *)
+             continue
+             ;;
+         esac
+         TAG="${{ steps.set_tag.outputs.tag }}"
+         DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/project-microservice-${DIRECTORY}:${TAG}"
+         echo "docker Image is $DOCKER_IMAGE"
+         echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+         docker build -t $DOCKER_IMAGE $CONTEXT_PATH
+         docker push $DOCKER_IMAGE
+       done
 
-      - name: Update Docker Compose
-        run: |
-          TAG="${{ steps.set_tag.outputs.tag }}"
-          DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/appointments:${TAG}"
-          echo "Updating Docker Compose for appointments with image $DOCKER_IMAGE"
+ update-docker-compose:
+   runs-on: ubuntu-latest
+   needs:  
+     - build-and-push
+   steps:
+     - uses: actions/checkout@v3
+       with:
+         token: ${{ secrets.GH_TOKEN }}
 
-          # Replace the image tag in the Docker Compose file
-          sed -i "s#image: ${DOCKER_IMAGE}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yml"
+     - name: Get Changed Files
+       id: files
+       uses: jitterbit/get-changed-files@v1
 
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.email "rohailzubair263@gmail.com"
-          git config --global user.name "Rohail-Zubair"
-          git config pull.rebase false
-          git add ./docker-compose.yml
-          git commit -m "Update Docker Compose file with new appointments image tags"
-          git pull origin main
-          git push origin main
+     - name: Set Tag
+       id: set_tag
+       run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
+
+     - name: Determine Changed Paths
+       run: |
+         CHANGED_PATHS="${{ steps.files.outputs.all }}"
+         for FILE_PATH in $CHANGED_PATHS; do
+           echo "File Path is: $FILE_PATH"
+           DIRECTORY=$(dirname "${FILE_PATH}")
+           echo "Directory is: $DIRECTORY"
+   
+           case "$DIRECTORY" in
+             "appointments")
+               UPDATED_SERVICE="appointments"
+               ;;
+             *)
+               continue
+               ;;
+           esac
+
+           TAG="${{ steps.set_tag.outputs.tag }}"
+           echo "Tag is: $TAG"
+           DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/project-microservice-${UPDATED_SERVICE}:${TAG}"
+           echo "Updating Docker Compose for $UPDATED_SERVICE with image $DOCKER_IMAGE"
+
+           # Replace the image tag in the Docker Compose file
+           sed -i "s#image: rohail0463/${UPDATED_SERVICE}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yaml"
+         done
+
+     - name: Commit and Push Changes
+       run: |
+         git config --global user.email "rohailzubair263@gmail.com"
+         git config --global user.name "Rohail-Zubair"
+         git config pull.rebase false
+         git add ./docker-compose.yaml
+         git commit -m "Update Docker Compose file with new appointment image tags"
+         git pull origin main
+         git push origin main
