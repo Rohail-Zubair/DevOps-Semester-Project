@@ -1,4 +1,4 @@
-name: Appointments CI/CD
+name: Appointments - CI/CD
 
 on:
   push:
@@ -7,99 +7,49 @@ on:
     paths:
       - 'appointments/**'
   pull_request:
-    branches:
-      - '*'
     paths:
       - 'appointments/**'
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Get Changed Files
-        id: files
-        uses: jitterbit/get-changed-files@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          
+      - name: Build
+        run: docker build -t rohail0463/appointments:${{ github.sha }} ./appointments
+        
+      - name: Push
+        run: docker push rohail0463/appointments:${{ github.sha }}
 
-      - name: Set Tag
-        id: set_tag
-        run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
-
-      - name: Build and Push Docker Image
+      - name: Update Image on Docker Compose
         run: |
-          CHANGED_PATHS="${{ steps.files.outputs.all }}"
-          for FILE_PATH in $CHANGED_PATHS; do
-            echo "File Path is: $FILE_PATH"
-            DIRECTORY=$(dirname "${FILE_PATH}")
-            echo "Directory is: $DIRECTORY"
-
-            case "$DIRECTORY" in
-              "appointments")
-                CONTEXT_PATH="./appointments"
-                ;;
-              *)
-                continue
-                ;;
-            esac
-
-            TAG="${{ steps.set_tag.outputs.tag }}"
-            DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${DIRECTORY}:${TAG}"
-            echo "Docker Image is $DOCKER_IMAGE"
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-            docker build -t $DOCKER_IMAGE $CONTEXT_PATH
-            docker push $DOCKER_IMAGE
-          done
-
-  update-docker-compose:
-    runs-on: ubuntu-latest
-    needs:  
-      - build-and-push
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Get Changed Files
-        id: files
-        uses: jitterbit/get-changed-files@v1
-
-      - name: Set Tag
-        id: set_tag
-        run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
-
-      - name: Determine Changed Paths
+          sed -i "s|image: username/appointments:[0-9a-f]\+|image: username/appointments:${{ github.sha }}|" docker-compose.yaml
+      
+      - name: Check Changes
         run: |
-          CHANGED_PATHS="${{ steps.files.outputs.all }}"
-          for FILE_PATH in $CHANGED_PATHS; do
-            echo "File Path is: $FILE_PATH"
-            DIRECTORY=$(dirname "${FILE_PATH}")
-            echo "Directory is: $DIRECTORY"
-
-            case "$DIRECTORY" in
-              "appointments")
-                UPDATED_SERVICE="appointments"
-                ;;
-              *)
-                continue
-                ;;
-            esac
-
-            TAG="${{ steps.set_tag.outputs.tag }}"
-            echo "Tag is: $TAG"
-            DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${UPDATED_SERVICE}:${TAG}"
-            echo "Updating Docker Compose for $UPDATED_SERVICE with image $DOCKER_IMAGE"
-
-            # Replace the image tag in the Docker Compose file
-            sed -i "s#image: rohail0463/${UPDATED_SERVICE}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yaml"
-          done
-
+          git diff
+          git status
+      
       - name: Commit and Push Changes
         run: |
-          git config --global user.email "rohailzubair263@gmail.com"
-          git config --global user.name "Rohail Zubair"
-          git config pull.rebase false
-          git add ./docker-compose.yaml
-          git commit -m "Update Docker Compose file with new appointment image tags"
-          git pull origin main
-          git push origin main
+           git config --global user.email "rohailzubair263@gmail.com"
+           git config --global user.name "Rohail-Zubair"
+           git config --local user.password "${{ secrets.GH_TOKEN }}"
+          
+           # Check if there are changes to commit
+           if [ -n "$(git status --porcelain)" ]; then
+           git add .
+           git commit -m "Update docker-compose.yml"
+           git push origin main
+           else
+            echo "No changes to commit."
+           fi
