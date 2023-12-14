@@ -33,12 +33,23 @@ jobs:
       - name: Update Image on Docker Compose
         run: |
           sed -i "s|image: username/doctors:[0-9a-f]\+|image: username/doctors:${{ github.sha }}|" docker-compose.yaml
-  
+      
+      - name: Check Changes
+        run: |
+          git diff
+          git status
+      
       - name: Commit and Push Changes
         run: |
            git config --global user.email "rohailzubair263@gmail.com"
            git config --global user.name "Rohail-Zubair"
            git config --local user.password "${{ secrets.GH_TOKEN }}"
+          
+           # Check if there are changes to commit
+           if [ -n "$(git status --porcelain)" ]; then
            git add .
            git commit -m "Update docker-compose.yml"
            git push origin main
+           else
+            echo "No changes to commit."
+           fi
