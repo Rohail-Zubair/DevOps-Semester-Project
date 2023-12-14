@@ -44,6 +44,7 @@ jobs:
              continue
              ;;
          esac
+         
          echo "Directory is: $DIRECTORY"
          TAG="${{ steps.set_tag.outputs.tag }}"
          echo "Directory is: $DIRECTORY"
