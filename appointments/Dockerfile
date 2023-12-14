@@ -5,3 +5,4 @@ RUN pip install flask
 EXPOSE 7072
 CMD ["python", "app.py"]
 
+
