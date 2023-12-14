@@ -6,3 +6,4 @@ EXPOSE 7072
 CMD ["python", "app.py"]
 
 
+
