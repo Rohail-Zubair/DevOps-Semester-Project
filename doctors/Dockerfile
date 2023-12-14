@@ -5,4 +5,3 @@ RUN pip install flask
 EXPOSE 9092
 CMD ["python", "app.py"]
 
-
