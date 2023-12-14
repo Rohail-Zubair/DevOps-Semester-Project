@@ -45,7 +45,7 @@ jobs:
              ;;
          esac
          TAG="${{ steps.set_tag.outputs.tag }}"
-         DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/project-microservice-${DIRECTORY}:${TAG}"
+         DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${DIRECTORY}:${TAG}"
          echo "docker Image is $DOCKER_IMAGE"
          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
          docker build -t $DOCKER_IMAGE $CONTEXT_PATH
@@ -88,7 +88,7 @@ jobs:
 
            TAG="${{ steps.set_tag.outputs.tag }}"
            echo "Tag is: $TAG"
-           DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/project-microservice-${UPDATED_SERVICE}:${TAG}"
+           DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${UPDATED_SERVICE}:${TAG}"
            echo "Updating Docker Compose for $UPDATED_SERVICE with image $DOCKER_IMAGE"
 
            # Replace the image tag in the Docker Compose file
