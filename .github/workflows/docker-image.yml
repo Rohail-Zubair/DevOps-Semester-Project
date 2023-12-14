@@ -1,106 +1,56 @@
-name: Appointments CI/CD
+name: Appointments Microservice CI/CD
 
 on:
- push:
-   branches:
-     - main
-   paths:
-     - 'appointments/**'
- pull_request:
-   branches:
-     - '*'
-   paths:
-     - 'appointments/**'
+  pull_request:
+    paths:
+      - 'appointments/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'appointments/**'
 
 jobs:
- build-and-push:
-   runs-on: ubuntu-latest
+  build-and-push-image:
+    runs-on: ubuntu-latest
 
-   steps:
-   - name: Checkout Repository
-     uses: actions/checkout@v2
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-   - name: Get Changed Files
-     id: files
-     uses: jitterbit/get-changed-files@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-   - name: Set Tag
-     id: set_tag
-     run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
+    - name: Login to DockerHub
+      run: | 
+       docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}} 
 
-   - name: Determine Changed Paths
-     run: |
-       CHANGED_PATHS="${{ steps.files.outputs.all }}"
-       for FILE_PATH in $CHANGED_PATHS; do
-         echo "File Path is: $FILE_PATH"
-         DIRECTORY=$(dirname "${FILE_PATH}")
-         echo "Directory is: $DIRECTORY"
+    - name: Build and Push Docker Image
+      run: |
+        APPOINTMENTS_VERSION=$(echo "${{ github.sha }}" | cut -c1-7)
+        docker buildx build --platform linux/amd64 -t rohail0463/appointments:${APPOINTMENTS_VERSION} ./appointments
+        docker push rohail0463/appointments:${APPOINTMENTS_VERSION}
 
-         case "$DIRECTORY" in
-           "appointments")
-             CONTEXT_PATH="./appointments"
-             ;;
-           *)
-             continue
-             ;;
-         esac
-         TAG="${{ steps.set_tag.outputs.tag }}"
-         DOCKER_IMAGE="${{secrets.DOCKER_USERNAME}}/${DIRECTORY}:latest"
-         echo "docker Image is $DOCKER_IMAGE"
-         docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
-         docker build -t $DOCKER_IMAGE 
-         docker push $DOCKER_IMAGE
-       done
+  update-docker-compose:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
 
- update-docker-compose:
-   runs-on: ubuntu-latest
-   needs:  
-     - build-and-push
-   steps:
-     - uses: actions/checkout@v3
-       with:
-         token: ${{ secrets.GH_TOKEN }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-     - name: Get Changed Files
-       id: files
-       uses: jitterbit/get-changed-files@v1
+    - name: Update Docker Compose
+      run: |
+        APPOINTMENTS_VERSION=$(echo "${{ github.sha }}" | cut -c1-7)
+        sed -i "s|appointments:[0-9a-f]\+|appointments:${APPOINTMENTS_VERSION}|" docker-compose.yml
 
-     - name: Set Tag
-       id: set_tag
-       run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
-
-     - name: Determine Changed Paths
-       run: |
-         CHANGED_PATHS="${{ steps.files.outputs.all }}"
-         for FILE_PATH in $CHANGED_PATHS; do
-           echo "File Path is: $FILE_PATH"
-           DIRECTORY=$(dirname "${FILE_PATH}")
-           echo "Directory is: $DIRECTORY"
-   
-           case "$DIRECTORY" in
-             "appointments")
-               UPDATED_SERVICE="appointments"
-               ;;
-             *)
-               continue
-               ;;
-           esac
-
-           TAG="${{ steps.set_tag.outputs.tag }}"
-           echo "Tag is: $TAG"
-           DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${UPDATED_SERVICE}"
-           echo "Updating Docker Compose for $UPDATED_SERVICE with image $DOCKER_IMAGE"
-
-           # Replace the image tag in the Docker Compose file
-           sed -i "s#image: rohail0463/${UPDATED_SERVICE}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yml"
-         done
-
-     - name: Commit and Push Changes
-       run: |
-         git config --global user.email "rohailzubair263@gmail.com"
-         git config --global user.name "Rohail-Zubair"
-         git config pull.rebase false
-         git add ./docker-compose.yml
-         git commit -m "Update Docker Compose file with new appointment image tags"
-         git pull origin main
-         git push origin main
+    - name: Commit and Push Changes
+      run: |
+       git config --global user.email "rohailzubair263@gmail.com"
+       git config --global user.name "Rohail-Zubair"
+       git config pull.rebase false
+       git add ./docker-compose.yaml
+       git commit -m "Update Appointments Microservice version to ${APPOINTMENTS_VERSION}"
+       git pull origin main
+       git push origin main
+  
