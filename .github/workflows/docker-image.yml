@@ -44,14 +44,11 @@ jobs:
              continue
              ;;
          esac
-         
-         echo "Directory is: $DIRECTORY"
          TAG="${{ steps.set_tag.outputs.tag }}"
-         echo "Directory is: $DIRECTORY"
-         DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/${DIRECTORY}"
+         DOCKER_IMAGE="${secrets.DOCKER_USERNAME}/${DIRECTORY}"
          echo "docker Image is $DOCKER_IMAGE"
          docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
-         docker build -t $DOCKER_IMAGE $CONTEXT_PATH
+         docker build -t $DOCKER_IMAGE 
          docker push $DOCKER_IMAGE
        done
 
