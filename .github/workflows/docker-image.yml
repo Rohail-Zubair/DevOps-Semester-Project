@@ -20,7 +20,7 @@ jobs:
 
       - name: Set Version
         id: set_version
-        run: echo "::set-output name=version::$(git describe --tags --always)"
+        run: echo "::set-output name=version::v3.5"
 
       - name: Build and Push Docker Image
         run: |
@@ -35,7 +35,7 @@ jobs:
         run: |
           SERVICE_NAME="appointments"
           DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${SERVICE_NAME}:${{ steps.set_version.outputs.version }}"
-          sed -i "s#image: ${SERVICE_NAME}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yml"
+          sed -i "s#image: ${SERVICE_NAME}.*#image: ${DOCKER_IMAGE}#" "docker-compose.yaml"
 
       - name: Commit and Push Changes
         run: |
@@ -43,7 +43,7 @@ jobs:
           git config --global user.name "Rohail Zubair"
           git config pull.rebase false
           git add "./$SERVICE_NAME/Dockerfile"
-          git add "docker-compose.yml"
+          git add "docker-compose.yaml"
           git commit -m "Update Docker Compose file for $SERVICE_NAME with version ${{ steps.set_version.outputs.version }}"
           git pull origin main
           git push origin main
