@@ -17,40 +17,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-    - name: Get Changed Files
-      id: files
-      uses: jitterbit/get-changed-files@v1
+      - name: Get Changed Files
+        id: files
+        uses: jitterbit/get-changed-files@v1
 
-    - name: Set Tag
-      id: set_tag
-      run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
+      - name: Set Tag
+        id: set_tag
+        run: echo "::set-output name=tag::v3.$((GITHUB_RUN_NUMBER))"
 
-    - name: Determine Changed Paths
-      run: |
-        CHANGED_PATHS="${{ steps.files.outputs.all }}"
-        for FILE_PATH in $CHANGED_PATHS; do
-          echo "File Path is: $FILE_PATH"
-          DIRECTORY=$(dirname "${FILE_PATH}")
-          echo "Directory is: $DIRECTORY"
+      - name: Determine Changed Paths
+        run: |
+          CHANGED_PATHS="${{ steps.files.outputs.all }}"
+          for FILE_PATH in $CHANGED_PATHS; do
+            echo "File Path is: $FILE_PATH"
+            DIRECTORY=$(dirname "${FILE_PATH}")
+            echo "Directory is: $DIRECTORY"
 
-          case "$DIRECTORY" in
-            "appointments")
-              CONTEXT_PATH="./appointments"
-              ;;
-            *)
-              continue
-              ;;
-          esac
-          TAG="${{ steps.set_tag.outputs.tag }}"
-          DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${DIRECTORY}:${TAG}"
-          echo "docker Image is $DOCKER_IMAGE"
-          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          docker build -t $DOCKER_IMAGE $CONTEXT_PATH
-          docker push $DOCKER_IMAGE
-        done
+            case "$DIRECTORY" in
+              "appointments")
+                CONTEXT_PATH="./appointments"
+                ;;
+              *)
+                continue
+                ;;
+            esac
+
+            TAG="${{ steps.set_tag.outputs.tag }}"
+            DOCKER_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${DIRECTORY}:${TAG}"
+            echo "docker Image is $DOCKER_IMAGE"
+            echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+            docker build -t $DOCKER_IMAGE $CONTEXT_PATH
+            docker push $DOCKER_IMAGE
+          done
 
   update-docker-compose:
     runs-on: ubuntu-latest
