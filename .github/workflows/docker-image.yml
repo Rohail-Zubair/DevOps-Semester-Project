@@ -45,7 +45,7 @@ jobs:
              ;;
          esac
          TAG="${{ steps.set_tag.outputs.tag }}"
-         DOCKER_IMAGE="${secrets.DOCKER_USERNAME}/${DIRECTORY}"
+         DOCKER_IMAGE="${{secrets.DOCKER_USERNAME}}/${DIRECTORY}:latest"
          echo "docker Image is $DOCKER_IMAGE"
          docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
          docker build -t $DOCKER_IMAGE 
