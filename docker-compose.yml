@@ -9,7 +9,7 @@ services:
       - frontend_network
 
   appointments:
-    image: rohail0463/appointments:v3.6
+    image: rohail0463/appointments:v3.5
     networks:
       - backend_network
       - frontend_network
