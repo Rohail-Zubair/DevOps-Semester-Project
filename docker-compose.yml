@@ -3,39 +3,30 @@ version: '3.9'
 services:
 
   doctors:
-    build:
-      context: doctors/
-      dockerfile: Dockerfile
-    init: true
-    deploy:
+    image: rohail0463/doctors:v3.5
     networks:
-      - mynet
+      - backend_network
+      - frontend_network
 
   appointments:
-    build:
-      context: appointments/
-      dockerfile: Dockerfile
-    init: true
-    deploy:
+    image: rohail0463/appointments:v3.6
     networks:
-      - mynet
+      - backend_network
+      - frontend_network
 
   frontend:
-    build:
-      context: frontend/
-      dockerfile: Dockerfile
-    init: true
+    image: rohail0463/frontend:v3.5
+    ports:
+      - "4000:3000" 
+    depends_on:
+      - doctors
+      - appointments  
+    networks:
+      - frontend_network
     environment:
       DOCTORS_SERVICE_URL: doctors:9092
       APPOINTMENTS_SERVICE_URL: appointments:7072
-    deploy:
-    networks:
-      - mynet
-    ports:
-      - "4000:3000"
-    depends_on:
-      - doctors
-      - appointments
+
 
   db:
     image: mysql:latest
@@ -50,5 +41,10 @@ services:
       - ./data:/var/lib/mysql
 
 networks:
-  mynet:
+  frontend_network:
     driver: bridge
+      
+  backend_network:
+    driver: bridge  
+    
+     
